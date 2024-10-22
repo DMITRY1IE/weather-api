@@ -8,10 +8,8 @@ use Illuminate\Support\Facades\Cache;
 
 class WeatherController extends Controller
 {
-    // Единицы измерения по умолчанию - Цельсий
     private $units = 'metric';
 
-    // Метод для получения погоды по городу
     public function getWeather(Request $request)
     {
         $request->validate([
@@ -19,7 +17,7 @@ class WeatherController extends Controller
         ]);
 
         $city = $request->input('city');
-        $units = Cache::get('units', 'metric'); // Получаем единицы измерения из кеша
+        $units = Cache::get('units', 'metric');
 
         try {
             $apiKey = env('OPENWEATHER_API_KEY');
@@ -27,13 +25,12 @@ class WeatherController extends Controller
                 'q' => $city,
                 'appid' => $apiKey,
                 'units' => $units,
-                'lang' => 'ru', // Для русского языка
+                'lang' => 'ru',
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
 
-                // Сохраняем последний поиск
                 $this->saveRecentSearch($city);
 
                 return response()->json([
@@ -51,18 +48,16 @@ class WeatherController extends Controller
         }
     }
 
-    // Метод для переключения единиц измерения
     public function toggleUnits()
     {
         $currentUnits = Cache::get('units', 'metric');
         $newUnits = $currentUnits === 'metric' ? 'imperial' : 'metric';
 
-        Cache::put('units', $newUnits, 3600); // Сохраняем на 1 час
+        Cache::put('units', $newUnits, 3600);
 
         return response()->json(['units' => $newUnits === 'metric' ? 'Celsius' : 'Fahrenheit']);
     }
 
-    // Метод для отображения недавних поисков
     public function recentSearches()
     {
         $recentSearches = Cache::get('recent_searches', []);
@@ -70,22 +65,18 @@ class WeatherController extends Controller
         return response()->json($recentSearches);
     }
 
-    // Сохраняем последние 5 запросов
     private function saveRecentSearch($city)
     {
         $recentSearches = Cache::get('recent_searches', []);
 
-        // Убираем дубликаты
         $recentSearches = array_filter($recentSearches, function ($search) use ($city) {
             return $search !== $city;
         });
 
-        // Добавляем новый город в начало массива
         array_unshift($recentSearches, $city);
 
-        // Оставляем только 5 последних
         $recentSearches = array_slice($recentSearches, 0, 5);
 
-        Cache::put('recent_searches', $recentSearches, 3600); // Сохраняем на 1 час
+        Cache::put('recent_searches', $recentSearches, 3600);
     }
 }
